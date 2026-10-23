@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Radiator Springs Smart Parking — Ka-Chow!</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bungee&family=Bungee+Shade&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@1.3.1/dist/tf.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@0.8/dist/teachablemachine-image.min.js"></script>
+<style>
+:root{
+  --cream:#fbf3e8; --cream2:#f6e6d2; --ink:#2a1208; --muted:#7a5a48;
+  --red:#d7191f; --red2:#ff4b2b; --orange:#ff8a1f; --yellow:#ffcc00;
+  --green:#1f9d55; --night:#1b1530; --card:rgba(255,255,255,.72);
+  --grad:linear-gradient(135deg,var(--red) 0%,var(--red2) 50%,var(--orange) 100%);
+  --shadow:0 20px 50px -20px rgba(215,25,31,.35);
+  --display:'Bungee',sans-serif; --body:'Outfit',sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--body);color:var(--ink);background:
+  radial-gradient(900px 500px at 85% -10%,rgba(255,138,31,.25),transparent 60%),
+  radial-gradient(800px 500px at -10% 20%,rgba(215,25,31,.15),transparent 60%),var(--cream);min-height:100vh}
+a{color:inherit;text-decoration:none}
+.wrap{max-width:1180px;margin:0 auto;padding:0 20px}
+
+/* NAV */
+nav{position:sticky;top:14px;z-index:20;margin-top:14px}
+.navin{display:flex;align-items:center;justify-content:space-between;background:var(--card);backdrop-filter:blur(14px);border:1px solid rgba(215,25,31,.12);border-radius:999px;padding:10px 12px 10px 22px;box-shadow:0 8px 30px -15px rgba(0,0,0,.2)}
+.logo{font-family:var(--display);font-size:20px;display:flex;gap:8px;align-items:center}
+.logo b{color:var(--red)}
+.links{display:flex;gap:4px}
+.links a{padding:8px 16px;border-radius:999px;font-weight:600;font-size:14px;color:var(--muted)}
+.links a:hover{background:var(--cream2);color:var(--ink)}
+.btn{border:0;cursor:pointer;font-family:var(--body);font-weight:700;font-size:14px;padding:11px 20px;border-radius:999px;transition:.2s;display:inline-flex;gap:8px;align-items:center}
+.btn-primary{background:var(--grad);color:#fff;box-shadow:var(--shadow)}
+.btn-primary:hover{transform:translateY(-2px)}
+.btn-dark{background:var(--ink);color:#fff}
+.btn-ghost{background:#fff;color:var(--ink);border:1px solid rgba(0,0,0,.08)}
+.btn:disabled{opacity:.5;cursor:not-allowed;transform:none}
+@media(max-width:800px){.links{display:none}}
+
+/* HERO */
+.hero{text-align:center;padding:70px 0 30px;position:relative}
+.badge{display:inline-flex;gap:8px;align-items:center;background:#fff;border:1px solid rgba(215,25,31,.15);padding:6px 14px;border-radius:999px;font-size:13px;font-weight:600;color:var(--red)}
+.hero h1{font-family:var(--display);font-size:clamp(38px,6.5vw,76px);line-height:1.02;margin:20px 0 14px;letter-spacing:-1px}
+.hero h1 .hl{background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent}
+.hero h1 .bolt{display:inline-block;color:var(--yellow);-webkit-text-stroke:2px var(--red);transform:rotate(-8deg)}
+.hero p{max-width:620px;margin:0 auto 26px;color:var(--muted);font-size:17px}
+.hero .cta{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
+.float{position:absolute;background:#fff;border-radius:16px;padding:12px 14px;box-shadow:0 15px 40px -15px rgba(0,0,0,.25);font-size:12px;text-align:left;width:190px}
+.float b{display:block;font-size:13px}
+.f1{left:0;top:110px;transform:rotate(-6deg)} .f2{right:0;top:150px;transform:rotate(6deg)}
+@media(max-width:1000px){.float{display:none}}
+.checker{height:18px;margin:30px 0 0;background:repeating-conic-gradient(var(--ink) 0 25%,#fff 0 50%) 0 0/18px 18px;border-radius:6px;opacity:.85}
+
+/* DASHBOARD */
+.board{margin:40px auto 0;background:linear-gradient(160deg,#fff 0%,#fff6ec 100%);border-radius:28px;padding:22px;box-shadow:0 40px 80px -40px rgba(215,25,31,.45);border:1px solid rgba(215,25,31,.1)}
+.board-top{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:18px}
+.board-top h2{font-family:var(--display);font-size:20px}
+.conn{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.pill{display:inline-flex;align-items:center;gap:8px;padding:7px 14px;border-radius:999px;font-size:13px;font-weight:700;background:var(--cream2)}
+.dot{width:9px;height:9px;border-radius:50%;background:#aaa}
+.on .dot{background:var(--green);box-shadow:0 0 0 4px rgba(31,157,85,.2)}
+.grid{display:grid;grid-template-columns:repeat(12,1fr);gap:16px}
+.card{background:#fff;border-radius:20px;padding:20px;border:1px solid rgba(0,0,0,.06)}
+.card h3{font-size:14px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center}
+.c4{grid-column:span 4}.c8{grid-column:span 8}.c6{grid-column:span 6}.c12{grid-column:span 12}
+@media(max-width:900px){.c4,.c8,.c6{grid-column:span 12}}
+
+/* LED screen */
+.led{background:#0d0d0d;border-radius:16px;padding:20px;border:6px solid #2b2b2b;box-shadow:inset 0 0 30px rgba(0,0,0,.8)}
+.led .lbl{font-family:'Courier New',monospace;color:#ff9a3c;font-size:13px;letter-spacing:3px;opacity:.8}
+.led .num{font-family:var(--display);font-size:96px;line-height:1;color:var(--yellow);text-shadow:0 0 12px rgba(255,204,0,.8),0 0 30px rgba(255,120,0,.6)}
+.led .num small{font-size:32px;color:#ff9a3c}
+.led.full .num{color:#ff3030;text-shadow:0 0 14px rgba(255,48,48,.9)}
+.slots{display:grid;grid-template-columns:repeat(8,1fr);gap:6px;margin-top:14px}
+.slot{height:34px;border-radius:8px;background:repeating-linear-gradient(45deg,#e9f7ef,#e9f7ef 6px,#dff2e7 6px,#dff2e7 12px);border:2px dashed var(--green);display:grid;place-items:center;font-size:16px}
+.slot.taken{background:var(--grad);border:2px solid var(--red)}
+.counts{display:flex;gap:10px;margin-top:14px}
+.counts div{flex:1;background:var(--cream);border-radius:12px;padding:10px;text-align:center}
+.counts b{font-family:var(--display);font-size:22px;display:block}
+.counts span{font-size:12px;color:var(--muted)}
+
+/* Gates */
+.gates{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.gate{border-radius:16px;padding:16px;background:var(--cream);position:relative;overflow:hidden}
+.gate .name{font-family:var(--display);font-size:15px}
+.gate .st{font-size:13px;color:var(--muted);margin:4px 0 12px}
+.barrier{height:70px;position:relative;border-bottom:4px solid var(--ink);margin-bottom:12px}
+.post{position:absolute;left:10px;bottom:0;width:16px;height:60px;background:var(--ink);border-radius:4px 4px 0 0}
+.arm{position:absolute;left:18px;bottom:50px;width:80%;height:10px;border-radius:6px;background:repeating-linear-gradient(90deg,var(--red) 0 18px,#fff 18px 36px);transform-origin:left center;transition:transform .7s cubic-bezier(.5,1.6,.5,1)}
+.gate.open .arm{transform:rotate(-80deg)}
+.ir{display:inline-flex;gap:6px;align-items:center;font-size:12px;font-weight:700;padding:4px 10px;border-radius:999px;background:#fff}
+.ir.hit{background:var(--red);color:#fff}
+.gate .row{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.gate .btn{padding:8px 14px;font-size:12px}
+
+/* Sky / solar */
+.sky{border-radius:16px;height:150px;position:relative;overflow:hidden;background:linear-gradient(180deg,#7fd3ff,#ffe2a8);transition:background 1s}
+.sky .sun{position:absolute;width:64px;height:64px;border-radius:50%;background:var(--yellow);box-shadow:0 0 40px 10px rgba(255,204,0,.7);right:30px;top:22px;transition:1s}
+.sky .mesa{position:absolute;bottom:0;left:0;right:0;height:55px;background:linear-gradient(180deg,#c4582b,#8f3a1a);clip-path:polygon(0 60%,12% 30%,22% 30%,30% 55%,45% 55%,52% 10%,64% 10%,70% 50%,85% 45%,92% 20%,100% 25%,100% 100%,0 100%)}
+.sky .stars{position:absolute;inset:0;opacity:0;transition:1s;background-image:radial-gradient(2px 2px at 20% 30%,#fff,transparent),radial-gradient(2px 2px at 60% 20%,#fff,transparent),radial-gradient(1.5px 1.5px at 40% 50%,#fff,transparent),radial-gradient(2px 2px at 80% 40%,#fff,transparent),radial-gradient(1.5px 1.5px at 10% 15%,#fff,transparent)}
+.sky.night{background:linear-gradient(180deg,var(--night),#4a2a5a)}
+.sky.night .sun{background:#f3f0d8;box-shadow:0 0 30px 6px rgba(255,255,230,.4);width:48px;height:48px}
+.sky.night .stars{opacity:1}
+.lamp{display:flex;align-items:center;gap:14px;margin-top:14px}
+.bulb{width:46px;height:46px;border-radius:50%;background:#ddd;transition:.4s;display:grid;place-items:center;font-size:22px}
+.bulb.lit{background:var(--yellow);box-shadow:0 0 30px 8px rgba(255,204,0,.75)}
+.meter{height:10px;background:var(--cream2);border-radius:99px;overflow:hidden;margin-top:6px}
+.meter i{display:block;height:100%;background:var(--grad);width:0;transition:.5s}
+.seg{display:flex;background:var(--cream);border-radius:999px;padding:4px;gap:4px;margin-top:12px}
+.seg button{flex:1;border:0;background:transparent;padding:7px;border-radius:999px;font-family:var(--body);font-weight:700;font-size:12px;cursor:pointer;color:var(--muted)}
+.seg button.act{background:#fff;color:var(--red);box-shadow:0 2px 8px rgba(0,0,0,.08)}
+
+/* AI */
+.ai{display:grid;grid-template-columns:1.1fr 1fr;gap:18px}
+@media(max-width:900px){.ai{grid-template-columns:1fr}}
+.cam{position:relative;border-radius:20px;overflow:hidden;background:#111;aspect-ratio:1/1;display:grid;place-items:center;border:5px solid var(--ink)}
+.cam canvas,.cam video{width:100%;height:100%;object-fit:cover}
+.cam .ph{color:#fff;text-align:center;padding:20px;opacity:.85}
+.cam .ph div{font-size:52px}
+.verdict{position:absolute;left:12px;right:12px;bottom:12px;padding:12px;border-radius:14px;font-family:var(--display);font-size:18px;text-align:center;background:rgba(255,255,255,.9)}
+.verdict.yes{background:var(--green);color:#fff}
+.verdict.no{background:var(--red);color:#fff}
+.bars .b{margin-bottom:12px}
+.bars .b .t{display:flex;justify-content:space-between;font-weight:700;font-size:14px}
+.bars .b .meter{height:14px}
+.th{display:flex;align-items:center;gap:10px;margin:14px 0;font-size:14px;font-weight:600}
+.th input{flex:1;accent-color:var(--red)}
+
+/* Log */
+.log{height:200px;overflow:auto;font-family:'Courier New',monospace;font-size:12.5px;background:var(--ink);color:#ffd8a8;border-radius:14px;padding:12px}
+.log div{padding:2px 0;border-bottom:1px dashed rgba(255,255,255,.07)}
+.log .tx{color:#7fe3a0}.log .rx{color:#ffcc00}.log .er{color:#ff7b7b}
+
+/* Section */
+section{padding:60px 0 0}
+.sh{text-align:center;margin-bottom:26px}
+.sh small{color:var(--red);font-weight:800;letter-spacing:.15em;font-size:12px}
+.sh h2{font-family:var(--display);font-size:clamp(26px,4vw,40px);margin-top:6px}
+.how{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+@media(max-width:900px){.how{grid-template-columns:1fr 1fr}}
+.how .card .ic{width:48px;height:48px;border-radius:14px;background:var(--grad);display:grid;place-items:center;font-size:24px;margin-bottom:12px}
+.how .card b{font-size:16px;display:block;margin-bottom:6px}
+.how .card p{font-size:14px;color:var(--muted)}
+footer{margin-top:70px;background:var(--ink);color:#f6e6d2;padding:40px 0 30px;border-radius:30px 30px 0 0}
+footer .big{font-family:'Bungee Shade',var(--display);font-size:clamp(40px,10vw,120px);color:var(--red);line-height:1;opacity:.9;text-align:center}
+footer p{text-align:center;opacity:.7;font-size:13px;margin-top:10px}
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(120px);background:var(--ink);color:#fff;padding:12px 20px;border-radius:999px;font-weight:600;transition:.4s;z-index:50}
+.toast.show{transform:translateX(-50%) translateY(0)}
+</style>
+</head>
+<body>
+
+<nav class="wrap"><div class="navin">
+  <div class="logo">⚡<span>Ka-Chow <b>Park</b></span></div>
+  <div class="links"><a href="#dash">Dashboard</a><a href="#ai">Car Scanner</a><a href="#how">How it Works</a></div>
+  <button class="btn btn-primary" id="btnConnect2">🔵 Connect ESP32</button>
+</div></nav>
+
+<header class="wrap hero">
+  <div class="float f1">🏁 <b>Gate In Ready</b>Only real racers get in!</div>
+  <div class="float f2">🌙 <b>Auto Headlights</b>Solar sensor says it's night</div>
+  <span class="badge">⚡ ESP32 · Bluetooth · Teachable Machine</span>
+  <h1>Radiator Springs<br><span class="hl">Smart Parking</span> <span class="bolt">95</span></h1>
+  <p>"Speed. I am speed." — 8 slots, 2 infrared gates, an AI that only lets <b>cars</b> through, and lights that turn on when the desert sun goes down.</p>
+  <div class="cta">
+    <button class="btn btn-primary" id="btnConnect">🔵 Connect via Bluetooth</button>
+    <a class="btn btn-ghost" href="#ai">📷 Open Car Scanner</a>
+  </div>
+  <div class="checker"></div>
+</header>
+
+<main class="wrap">
+<div class="board" id="dash">
+  <div class="board-top">
+    <h2>🏎️ Pit Crew Dashboard</h2>
+    <div class="conn">
+      <span class="pill" id="btPill"><span class="dot"></span><span id="btText">Not connected</span></span>
+      <span class="pill" id="aiPill"><span class="dot"></span><span id="aiText">AI off</span></span>
+      <button class="btn btn-ghost" id="btnDemo">🧪 Demo mode</button>
+    </div>
+  </div>
+
+  <div class="grid">
+    <!-- LED -->
+    <div class="card c4">
+      <h3>LED Screen <span>8 total</span></h3>
+      <div class="led" id="led">
+        <div class="lbl">SLOTS LEFT</div>
+        <div class="num"><span id="slotNum">8</span><small>/8</small></div>
+        <div class="lbl" id="ledMsg">WELCOME RACER!</div>
+      </div>
+      <div class="slots" id="slots"></div>
+      <div class="counts">
+        <div><b id="cIn">0</b><span>Cars in today</span></div>
+        <div><b id="cOut">0</b><span>Cars out today</span></div>
+      </div>
+    </div>
+
+    <!-- Gates -->
+    <div class="card c8">
+      <h3>Infrared Gates <button class="btn btn-ghost" style="padding:6px 12px;font-size:12px" id="btnReset">↺ Reset to 8</button></h3>
+      <div class="gates">
+        <div class="gate" id="gIn">
+          <div class="name">🏁 GATE IN</div>
+          <div class="st" id="gInSt">Closed · waiting for a car</div>
+          <div class="barrier"><div class="post"></div><div class="arm"></div></div>
+          <span class="ir" id="irIn">● IR 1: clear</span>
+          <div class="row">
+            <button class="btn btn-primary" id="openIn">Open (manual)</button>
+            <button class="btn btn-ghost demo-only" id="simIn">Simulate car</button>
+          </div>
+        </div>
+        <div class="gate" id="gOut">
+          <div class="name">🏆 GATE OUT</div>
+          <div class="st" id="gOutSt">Closed · waiting for a car</div>
+          <div class="barrier"><div class="post"></div><div class="arm"></div></div>
+          <span class="ir" id="irOut">● IR 2: clear</span>
+          <div class="row">
+            <button class="btn btn-primary" id="openOut">Open (manual)</button>
+            <button class="btn btn-ghost demo-only" id="simOut">Simulate car</button>
+          </div>
+        </div>
+      </div>
+      <p style="font-size:13px;color:var(--muted);margin-top:12px">Gate In opens only when the AI scanner confirms a <b>car</b> and a slot is free (−1 slot). Gate Out opens automatically (+1 slot).</p>
+    </div>
+
+    <!-- Solar -->
+    <div class="card c6">
+      <h3>Solar Panel · Day / Night <span id="dnText">☀️ Day</span></h3>
+      <div class="sky" id="sky"><div class="stars"></div><div class="sun"></div><div class="mesa"></div></div>
+      <div style="margin-top:12px;font-size:14px;font-weight:600;display:flex;justify-content:space-between"><span>Sunlight level</span><span id="solarVal">—</span></div>
+      <div class="meter"><i id="solarBar"></i></div>
+      <input type="range" min="0" max="4095" value="3000" id="solarSim" class="demo-only" style="width:100%;margin-top:10px;accent-color:var(--red)">
+    </div>
+
+    <!-- Lamp -->
+    <div class="card c6">
+      <h3>LED Lamp <span id="lampMode">AUTO</span></h3>
+      <div class="lamp">
+        <div class="bulb" id="bulb">💡</div>
+        <div><b id="lampText" style="font-size:18px">Lamp OFF</b><div style="font-size:13px;color:var(--muted)">Auto: turns on when the solar panel sees no sunlight.</div></div>
+      </div>
+      <div class="seg" id="lampSeg">
+        <button data-m="AUTO" class="act">Auto</button><button data-m="ON">Force ON</button><button data-m="OFF">Force OFF</button>
+      </div>
+      <h3 style="margin-top:18px">Bluetooth Log</h3>
+      <div class="log" id="log"></div>
+    </div>
+  </div>
+</div>
+
+<!-- AI -->
+<section id="ai">
+  <div class="sh"><small>TEACHABLE MACHINE</small><h2>Is it a Car? 🚗</h2></div>
+  <div class="board">
+    <div class="ai">
+      <div>
+        <div class="cam" id="cam"><div class="ph"><div>📷</div>Press “Start Camera” and allow camera access</div></div>
+        <div style="display:flex;gap:10px;margin-top:12px;flex-wrap:wrap">
+          <button class="btn btn-primary" id="btnCam">📷 Start Camera</button>
+          <button class="btn btn-ghost" id="btnStop" disabled>⏹ Stop</button>
+          <button class="btn btn-ghost" id="btnFlip">🔄 Flip camera</button>
+        </div>
+      </div>
+      <div class="card">
+        <h3>Live Prediction</h3>
+        <div class="bars" id="bars"><p style="color:var(--muted);font-size:14px">Model loads when the camera starts.</p></div>
+        <div class="th">Confidence needed <input type="range" id="th" min="50" max="99" value="85"><span id="thv">85%</span></div>
+        <div style="font-size:14px;margin-bottom:8px">Class that counts as a car:
+          <select id="carClass" style="font-family:var(--body);padding:6px 10px;border-radius:10px;border:1px solid #ddd;margin-left:6px"></select>
+        </div>
+        <div class="th" style="margin:6px 0"><input type="checkbox" id="autoGate" checked style="flex:0"> Auto-open Gate In when a car is confirmed at IR 1</div>
+        <p style="font-size:13px;color:var(--muted);margin-top:10px">Not a car? 🚫 The gate stays closed — "No Mater-style tow trucks pretending to be people!"</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="how">
+  <div class="sh"><small>THE RACE PLAN</small><h2>How it Works</h2></div>
+  <div class="how">
+    <div class="card"><div class="ic">🔦</div><b>IR 1 sees a car</b><p>ESP32 tells the website through Bluetooth that something is at Gate In.</p></div>
+    <div class="card"><div class="ic">🤖</div><b>AI checks it</b><p>The camera + Teachable Machine decide if it's really a car.</p></div>
+    <div class="card"><div class="ic">🚧</div><b>Gate opens</b><p>Car? Gate In opens and the LED shows one less slot. Gate Out adds one back.</p></div>
+    <div class="card"><div class="ic">🌙</div><b>Night lights</b><p>No sunlight on the solar panel = night, so the LED lamp turns on.</p></div>
+  </div>
+</section>
+</main>
+
+<footer>
+  <div class="big">KA-CHOW!</div>
+  <p>Radiator Springs Smart Parking · ESP32 Project · Fan-made, inspired by Disney·Pixar's Cars</p>
+</footer>
+<div class="toast" id="toast"></div>
+
+<script>
+/* ================= CONFIG ================= */
+const MODEL_URL = "https://teachablemachine.withgoogle.com/models/7Aa57SbMm/";
+const UART_SERVICE = "6e400001-b5a3-f393-e0a9-e50e24dcca9e";
+const UART_RX = "6e400002-b5a3-f393-e0a9-e50e24dcca9e"; // write to ESP
+const UART_TX = "6e400003-b5a3-f393-e0a9-e50e24dcca9e"; // notify from ESP
+const TOTAL = 8;
+
+/* ================= STATE ================= */
+const S = {slots:TOTAL, cin:0, cout:0, irIn:0, irOut:0, solar:3000, night:false, lamp:false, lampMode:"AUTO",
+  gateIn:false, gateOut:false, demo:false, isCar:false, carProb:0};
+let device=null, rxChar=null, txChar=null, rxBuf="";
+const $=id=>document.getElementById(id);
+
+/* ================= UI ================= */
+function log(msg,cls=""){const d=document.createElement("div");d.className=cls;d.textContent=new Date().toLocaleTimeString()+"  "+msg;$("log").prepend(d)}
+function toast(t){const e=$("toast");e.textContent=t;e.classList.add("show");clearTimeout(e._t);e._t=setTimeout(()=>e.classList.remove("show"),2500)}
+function render(){
+  $("slotNum").textContent=S.slots;
+  $("led").classList.toggle("full",S.slots===0);
+  $("ledMsg").textContent=S.slots===0?"PARKING FULL!":(S.night?"GOOD NIGHT RACER":"WELCOME RACER!");
+  const sl=$("slots");sl.innerHTML="";
+  for(let i=0;i<TOTAL;i++){const d=document.createElement("div");d.className="slot"+(i<TOTAL-S.slots?" taken":"");d.textContent=i<TOTAL-S.slots?"🏎️":"";sl.appendChild(d)}
+  $("cIn").textContent=S.cin;$("cOut").textContent=S.cout;
+  $("irIn").className="ir"+(S.irIn?" hit":"");$("irIn").textContent="● IR 1: "+(S.irIn?"car detected":"clear");
+  $("irOut").className="ir"+(S.irOut?" hit":"");$("irOut").textContent="● IR 2: "+(S.irOut?"car detected":"clear");
+  $("gIn").classList.toggle("open",S.gateIn);$("gOut").classList.toggle("open",S.gateOut);
+  $("gInSt").textContent=S.gateIn?"OPEN · Ka-chow, drive in!":(S.irIn?(S.slots===0?"Closed · parking full":"Closed · scanning vehicle..."):"Closed · waiting for a car");
+  $("gOutSt").textContent=S.gateOut?"OPEN · See ya, racer!":"Closed · waiting for a car";
+  $("sky").classList.toggle("night",S.night);$("dnText").textContent=S.night?"🌙 Night":"☀️ Day";
+  $("solarVal").textContent=S.solar+" / 4095";$("solarBar").style.width=(S.solar/4095*100)+"%";
+  $("bulb").classList.toggle("lit",S.lamp);$("lampText").textContent=S.lamp?"Lamp ON":"Lamp OFF";$("lampMode").textContent=S.lampMode;
+  document.querySelectorAll("#lampSeg button").forEach(b=>b.classList.toggle("act",b.dataset.m===S.lampMode));
+  document.querySelectorAll(".demo-only").forEach(e=>e.style.display=S.demo?"":"none");
+  $("btnDemo").textContent=S.demo?"🧪 Demo: ON":"🧪 Demo mode";
+}
+
+/* ================= BLUETOOTH ================= */
+async function connect(){
+  if(!navigator.bluetooth){toast("Use Chrome/Edge on Android or desktop for Bluetooth");log("Web Bluetooth not supported","er");return}
+  try{
+    device=await navigator.bluetooth.requestDevice({filters:[{namePrefix:"McQueen"}],optionalServices:[UART_SERVICE]})
+      .catch(()=>navigator.bluetooth.requestDevice({acceptAllDevices:true,optionalServices:[UART_SERVICE]}));
+    device.addEventListener("gattserverdisconnected",onDisc);
+    const server=await device.gatt.connect();
+    const service=await server.getPrimaryService(UART_SERVICE);
+    rxChar=await service.getCharacteristic(UART_RX);
+    txChar=await service.getCharacteristic(UART_TX);
+    await txChar.startNotifications();
+    txChar.addEventListener("characteristicvaluechanged",e=>{
+      rxBuf+=new TextDecoder().decode(e.target.value);
+      let i;while((i=rxBuf.indexOf("\n"))>=0){const line=rxBuf.slice(0,i).trim();rxBuf=rxBuf.slice(i+1);if(line)handle(line)}
+    });
+    S.demo=false;$("btPill").classList.add("on");$("btText").textContent=device.name||"ESP32";
+    log("Connected to "+(device.name||"ESP32"),"rx");toast("⚡ Connected! Ka-chow!");send("GET");render();
+  }catch(err){log("BT error: "+err.message,"er")}
+}
+function onDisc(){rxChar=null;$("btPill").classList.remove("on");$("btText").textContent="Not connected";log("Disconnected","er");toast("Bluetooth disconnected")}
+async function send(cmd){
+  log("→ "+cmd,"tx");
+  if(S.demo){demoHandle(cmd);return}
+  if(!rxChar){toast("Connect the ESP32 first");return}
+  try{await rxChar.writeValue(new TextEncoder().encode(cmd+"\n"))}catch(e){log("Send failed: "+e.message,"er")}
+}
+
+/* Messages from ESP32:
+   STATUS:slots,irIn,irOut,solar,night,lamp,mode,gateIn,gateOut,cin,cout
+   EVENT:CAR_AT_IN | EVENT:IN_PASSED | EVENT:OUT_PASSED | EVENT:FULL            */
+function handle(line){
+  log("← "+line,"rx");
+  if(line.startsWith("STATUS:")){
+    const p=line.slice(7).split(",");
+    [S.slots,S.irIn,S.irOut,S.solar]=[+p[0],+p[1],+p[2],+p[3]];
+    S.night=p[4]==="1";S.lamp=p[5]==="1";S.lampMode=p[6]||"AUTO";S.gateIn=p[7]==="1";S.gateOut=p[8]==="1";
+    S.cin=+p[9]||0;S.cout=+p[10]||0;render();
+    if(S.irIn&&!S.gateIn)tryAutoOpen();
+  }else if(line==="EVENT:CAR_AT_IN"){S.irIn=1;render();tryAutoOpen()}
+  else if(line==="EVENT:FULL"){toast("🏁 Parking is full!")}
+  else if(line==="EVENT:IN_PASSED"){toast("🏎️ Car parked! −1 slot")}
+  else if(line==="EVENT:OUT_PASSED"){toast("👋 Car left! +1 slot")}
+}
+
+/* ================= GATE LOGIC (website side) ================= */
+let lastAsk=0;
+function tryAutoOpen(){
+  if(!$("autoGate").checked||S.gateIn||!S.irIn)return;
+  if(S.slots<=0){return}
+  if(Date.now()-lastAsk<1500)return;
+  if(!running){if(Date.now()-lastAsk>5000){toast("Start the camera so the AI can check the car");lastAsk=Date.now()}return}
+  lastAsk=Date.now();
+  if(S.isCar){send("OPEN_IN");toast("✅ Car confirmed ("+Math.round(S.carProb*100)+"%) — opening Gate In")}
+  else{send("DENY_IN");}
+}
+
+/* ================= DEMO MODE (no ESP32) ================= */
+function demoHandle(cmd){
+  const reply=m=>setTimeout(()=>handle(m),150);
+  const status=()=>reply(`STATUS:${S.slots},${S.irIn},${S.irOut},${S.solar},${S.night?1:0},${S.lamp?1:0},${S.lampMode},${S.gateIn?1:0},${S.gateOut?1:0},${S.cin},${S.cout}`);
+  if(cmd==="OPEN_IN"&&S.slots>0){S.gateIn=true;status();setTimeout(()=>{S.gateIn=false;S.irIn=0;S.slots--;S.cin++;reply("EVENT:IN_PASSED");status()},2500)}
+  else if(cmd==="OPEN_IN"){reply("EVENT:FULL")}
+  else if(cmd==="OPEN_OUT"){S.gateOut=true;status();setTimeout(()=>{S.gateOut=false;S.irOut=0;if(S.slots<TOTAL)S.slots++;S.cout++;reply("EVENT:OUT_PASSED");status()},2500)}
+  else if(cmd.startsWith("LAMP_")){S.lampMode=cmd.slice(5);demoLamp();status()}
+  else if(cmd==="RESET"){S.slots=TOTAL;S.cin=S.cout=0;status()}
+  else status();
+}
+function demoLamp(){S.night=S.solar<1000;S.lamp=S.lampMode==="ON"||(S.lampMode==="AUTO"&&S.night)}
+
+/* ================= TEACHABLE MACHINE ================= */
+let model,webcam,maxP=0,running=false,facing=true;
+async function startCam(){
+  try{
+    $("btnCam").disabled=true;$("aiText").textContent="Loading model...";
+    if(!model){
+      model=await tmImage.load(MODEL_URL+"model.json",MODEL_URL+"metadata.json");
+      maxP=model.getTotalClasses();
+      const labels=model.getClassLabels();const sel=$("carClass");sel.innerHTML="";
+      labels.forEach((l,i)=>{const o=document.createElement("option");o.value=i;o.textContent=l;sel.appendChild(o)});
+      const guess=labels.findIndex(l=>/car|mobil/i.test(l)&&!/no|not|bukan|non/i.test(l));sel.value=guess>=0?guess:0;
+    }
+    webcam=new tmImage.Webcam(400,400,facing);
+    await webcam.setup({facingMode:facing?"user":"environment"});await webcam.play();
+    const cam=$("cam");cam.innerHTML="";cam.appendChild(webcam.canvas);
+    const v=document.createElement("div");v.className="verdict";v.id="verdict";v.textContent="Scanning...";cam.appendChild(v);
+    running=true;$("btnStop").disabled=false;$("aiPill").classList.add("on");$("aiText").textContent="AI scanning";
+    window.requestAnimationFrame(loop);
+  }catch(e){$("btnCam").disabled=false;$("aiText").textContent="AI off";toast("Camera/model error: "+e.message);log("AI error: "+e.message,"er")}
+}
+function stopCam(){running=false;if(webcam)webcam.stop();$("cam").innerHTML='<div class="ph"><div>📷</div>Camera stopped</div>';$("btnCam").disabled=false;$("btnStop").disabled=true;$("aiPill").classList.remove("on");$("aiText").textContent="AI off"}
+let frame=0;
+async function loop(){if(!running)return;webcam.update();if(frame++%6===0)await predict();window.requestAnimationFrame(loop)}
+async function predict(){
+  const pred=await model.predict(webcam.canvas);const ci=+$("carClass").value;const th=$("th").value/100;
+  $("bars").innerHTML=pred.map((p,i)=>`<div class="b"><div class="t"><span>${i===ci?"🚗 ":""}${p.className}</span><span>${(p.probability*100).toFixed(0)}%</span></div><div class="meter"><i style="width:${p.probability*100}%"></i></div></div>`).join("");
+  S.carProb=pred[ci].probability;S.isCar=S.carProb>=th;
+  const v=$("verdict");if(v){v.className="verdict "+(S.isCar?"yes":"no");v.textContent=S.isCar?"✅ CAR DETECTED — GATE CAN OPEN":"🚫 NOT A CAR — GATE STAYS CLOSED"}
+  if(S.irIn&&!S.gateIn)tryAutoOpen();
+}
+
+/* ================= EVENTS ================= */
+$("btnConnect").onclick=connect;$("btnConnect2").onclick=connect;
+$("btnCam").onclick=startCam;$("btnStop").onclick=stopCam;
+$("btnFlip").onclick=()=>{facing=!facing;if(running){stopCam();startCam()}else toast(facing?"Front camera":"Back camera")};
+$("th").oninput=e=>$("thv").textContent=e.target.value+"%";
+$("openIn").onclick=()=>{if(S.slots<=0)return toast("Parking full!");send("OPEN_IN")};
+$("openOut").onclick=()=>send("OPEN_OUT");
+$("btnReset").onclick=()=>send("RESET");
+document.querySelectorAll("#lampSeg button").forEach(b=>b.onclick=()=>send("LAMP_"+b.dataset.m));
+$("btnDemo").onclick=()=>{S.demo=!S.demo;log(S.demo?"Demo mode ON (no ESP32)":"Demo mode OFF");demoLamp();render()};
+$("simIn").onclick=()=>{S.irIn=1;handle("EVENT:CAR_AT_IN")};
+$("simOut").onclick=()=>{S.irOut=1;render();send("OPEN_OUT")};
+$("solarSim").oninput=e=>{S.solar=+e.target.value;demoLamp();render()};
+render();log("Ready. Connect your ESP32 'McQueen-Parking' or try Demo mode.");
+</script>
+</body>
+</html>
